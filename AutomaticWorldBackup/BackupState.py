@@ -2,6 +2,7 @@
 
 import sys
 import os
+from os.path import isfile, join
 import time
 import shutil
 import datetime
@@ -16,7 +17,7 @@ class BackupState(object):
         self.save_dir = str(save_dir)
         self.content_dir = str(content_dir)
         self.period = period
-        self.num_saves = num_saves
+        self.max_saves = num_saves
         
         self.start_time = time.time()
         
@@ -40,6 +41,36 @@ class BackupState(object):
         except:
             print("ERROR: content path does not exist.")
             
+    def getSaveFiles(self):
+        return [f for f in os.listdir(self.save_dir) if isfile(join(self.save_dir, f))]
+            
+    def purgeOldestSave(self):
+        savefiles = self.getSaveFiles() # List of all files in save directory
+        if len(savefiles) > self.max_saves:
+            print("Maximum number of saves exceeded, purging oldest")
+            
+            oldest_time = datetime.datetime.fromtimestamp(os.path.getmtime(savefiles[0])) # Search value
+            oldest_index = 0 # Search value
+            
+            for f in savefiles:
+                time = datetime.datetime.fromtimestamp(os.path.getmtime(f))
+                if time < oldest_time:
+                    oldest_time = time
+                    oldest_index = savefiles.index(f)
+             
+            oldest_save = savefiles[oldest_index] # Oldest directory
+            
+            # Purge the oldest save
+            os.remove(oldest_save)
+            
+            # Double check and ensure that we actually are at an acceptable number of backup saves.
+            # If we're still over the limit, recursively delete the oldest file until we are ok.
+            
+            if len(self.getSaveFiles()) > self.max_saves:
+                self.purgeOldestSave()
+            else:
+                print("Number of saves within limit.")
+            
     def createBackupName(self):
         # Create the name of the backup zip
         
@@ -50,17 +81,21 @@ class BackupState(object):
         return zip_name
         
     def backup(self):
+        print("Starting backup...")
         zipname = self.createBackupName() # Create the name of the zip file
         
         self.setSavePathDir() # Set ourselves in the content path
         shutil.make_archive(zipname, 'zip', self.content_dir)
+        print("Backup successfully created at "+str(datetime.datetime.utcnow()))
     
     def checkTimeAndBackup(self):
         current_time = time.time()
         t = current_time - self.start_time
         if (t >= self.period):
-            self.start_time = current_time
+            print("Reached backup time.")
             self.backup()
+            print("Reseting timer.")
+            self.start_time = current_time
 
 
 

@@ -45,6 +45,17 @@ def main():
     backupState.backup()
     
     print("Successfully backed up once.")
+    print("Starting main loop.")
+    
+    done = False
+    while not done:
+        try:
+            time.sleep(1)
+            backupState.checkTimeAndBackup()
+        except KeyboardInterrupt:
+            done = True
+            
+    print("Exiting.")
     
 if __name__ == '__main__':
     main()
