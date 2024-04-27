@@ -87,6 +87,8 @@ class BackupState(object):
         self.setSavePathDir() # Set ourselves in the content path
         shutil.make_archive(zipname, 'zip', self.content_dir)
         print("Backup successfully created at "+str(datetime.datetime.utcnow()))
+        
+        self.purgeOldestSave() # Purge the oldest save
     
     def checkTimeAndBackup(self):
         current_time = time.time()
